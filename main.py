@@ -49,14 +49,7 @@ state_transition_matrix = {
     STATE_11: {STATE_01: -1, STATE_10: 1},
     STATE_10: {STATE_00: 1, STATE_11: -1}
 }
-# Define the valid states and allowable transitions
-valid_states = (0b00, 0b01, 0b11, 0b10)
-valid_transitions = {
-    0b00: (0b01, 0b10),
-    0b01: (0b00, 0b11),
-    0b11: (0b01, 0b10),
-    0b10: (0b00, 0b11)
-}
+
 # Variables to keep track of the position and state
 position = 0
 last_state = STATE_00
@@ -170,7 +163,7 @@ def main(stdscr):
     global playing
     global counter
 
-    print("INITIALIZING....")
+    # print("INITIALIZING....")
     # tracks = load_to_track(filelist)
     tracks = []
 
@@ -218,39 +211,6 @@ def main(stdscr):
         # Always update the last state to the stable state
         last_state = stable_state
         current_row = counter % len(filelist)
-
-    def clkClicked(channel):
-            global counter
-            global lastCounter
-            global step
-            global current_row
-            global event
-            global playing
- 
-            clkState = GPIO.input(clk)
-            dtState = GPIO.input(dt)
-   
-            if clkState == 0 and dtState == 1 and not playing:
-                    lastCounter = counter
-                    counter = counter - step
-                    current_row = counter % len(filelist)
-                   
-   
-    def dtClicked(channel):
-            global counter
-            global lastCounter
-            global step
-            global current_row
-            global event
-            global playing
- 
-            clkState = GPIO.input(clk)
-            dtState = GPIO.input(dt)
-           
-            if clkState == 1 and dtState == 0 and not playing:
-                    lastCounter = counter
-                    counter = counter + step
-                    current_row = counter % len(filelist)
  
     def swClicked(channel):
             global event
