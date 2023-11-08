@@ -11,11 +11,8 @@ import threading
 from pydub import AudioSegment
 from pydub.playback import play
  
-# from playsound import playsound
-# import pygame
- 
 import curses
- 
+
 #tell to GPIO library to use logical PIN names/numbers, instead of the physical PIN numbers
 GPIO.setmode(GPIO.BCM)
  
@@ -31,22 +28,45 @@ GPIO.setup(sw, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 #get the initial states
 counter = 0
-last_state = (GPIO.input(clk) << 1) | GPIO.input(dt)
 
-clkLastState = GPIO.input(clk)
-dtLastState = GPIO.input(dt)
 swLastState = GPIO.input(sw)
 current_row = 0
 step = 1
 
 last_debounce_time = 0
 debounce_time = 5
-state_table = [
-    [0, -1, 1, 0],
-    [1, 0, 0, -1],
-    [-1, 0, 0, 1],
-    [0, 1, -1, 0]
-]
+
+# State definitions
+STATE_00 = 0b00
+STATE_01 = 0b01
+STATE_11 = 0b11
+STATE_10 = 0b10
+
+# State transition matrix
+state_transition_matrix = {
+    STATE_00: {STATE_01: 1, STATE_10: -1},
+    STATE_01: {STATE_00: -1, STATE_11: 1},
+    STATE_11: {STATE_01: -1, STATE_10: 1},
+    STATE_10: {STATE_00: 1, STATE_11: -1}
+}
+# Define the valid states and allowable transitions
+valid_states = (0b00, 0b01, 0b11, 0b10)
+valid_transitions = {
+    0b00: (0b01, 0b10),
+    0b01: (0b00, 0b11),
+    0b11: (0b01, 0b10),
+    0b10: (0b00, 0b11)
+}
+# Variables to keep track of the position and state
+position = 0
+last_state = STATE_00
+last_valid_state = STATE_00
+current_state = 0
+
+# Initialize the encoder state
+last_state = (GPIO.input(clk) << 1) | GPIO.input(dt)
+last_valid_state = last_state
+
 
 # Track states
 lastCounter = 0
@@ -62,15 +82,6 @@ cwd = os.getcwd()
 print(cwd)
 filelist = menu = sorted([file for file in files])
 print(menu)
- 
-def play_track(current_row):
-    global playing
- 
-    filename = os.path.abspath(filelist[current_row])
-    # sound = pygame.mixer.Sound(filename)
-    # pygame.mixer.Sound(filename).play()
-    # sound.play()
-    playing = False
  
 def load_audio_file(file):
     filename = os.path.abspath(file)
@@ -173,38 +184,40 @@ def main(stdscr):
     # print_menu(stdscr, current_row)
  
     #define functions which will be triggered on pin state changes
-    def get_encoder_state():
-        return (GPIO.input(clk) << 1) | GPIO.input(dt)
-
     def rotary_interrupt(channel):
         global counter
         global lastCounter
-        global step
         global current_row
-        global event
         global playing
-        global clkLastState
-        global dtLastState
         global last_state
+        global last_valid_state
         global last_debounce_time
 
-        clkState = GPIO.input(clk)
-        dtState = GPIO.input(dt)
+        if playing:
+            return
+        # Read the current state
+        state = (GPIO.input(clk) << 1) | GPIO.input(dt)
 
-        current_time = time.time() * 1000 # current time in milliseconds
-        current_state = get_encoder_state()
+        # Debounce by ensuring that the state is stable
+        time.sleep(0.002)
         
-        move = state_table[last_state][current_state]
-        
-        if move != 0:
-            lastCounter = counter
-            counter += move
-            current_row = counter % len(filelist)
+        stable_state = (GPIO.input(clk) << 1) | GPIO.input(dt)
+        if state != stable_state:
+            return
 
-        # Update last states
-        last_state = current_state
-        clkLastState = clkState
-        dtLastState = dtState
+        # Check the transition is valid (one bit has changed)
+        if stable_state in state_transition_matrix[last_valid_state]:
+            direction = state_transition_matrix[last_valid_state][stable_state]
+            # Check if we returned to the initial state
+            if stable_state == STATE_00:
+                lastCounter = counter
+                counter += direction
+            # Update the last valid state
+            last_valid_state = stable_state
+
+        # Always update the last state to the stable state
+        last_state = stable_state
+        current_row = counter % len(filelist)
 
     def clkClicked(channel):
             global counter
