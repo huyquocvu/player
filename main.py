@@ -121,8 +121,11 @@ def print_menu(stdscr, selected_row_idx):
 
             os.chdir("/home/dewdrop/player/descriptions")
             with open(os.path.abspath(description_table[idx])) as f:
-                for j, text in enumerate(textwrap.wrap(f.read(), w * 2 // 3 - 5)):
-                    descriptionWindow.addstr(j + 3, 2, text)
+                # for j, text in enumerate(textwrap.wrap(f.read(), w * 2 // 3 - 5)):
+                #    descriptionWindow.addstr(j + 3, 2, text)
+                text = f.readlines()
+                for j, line in enumerate(text):
+                    descriptionWindow.addstr(j + 3, 2, textwrap.fill(line, w * 2 // 3 - 5))
         else:
             trackWindow.addstr(y, x, name)
 
