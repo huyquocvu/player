@@ -96,7 +96,7 @@ def print_menu(stdscr, selected_row_idx):
     titleBar = curses.newwin(4, w - 1, 0, 0)
     title = "DEW DROP MEMORIES"
     titleBar.addstr(1, 2, title)
-    titleBar.addstr(2, 2, "SELECT A FILE TO HEAR MORE ABOUT OUR HISTORY")
+    titleBar.addstr(2, 2, "SELECT A TRACK TO HEAR MORE ABOUT OUR HISTORY")
     titleBar.border(0)
 
     # Track List
